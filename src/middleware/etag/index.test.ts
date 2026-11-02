@@ -500,4 +500,28 @@ describe('Etag Middleware', () => {
     expect(res2.headers.get('X-Custom-3')).toBeNull()
     expect(res2.headers.get('X-Custom-4')).toBeNull()
   })
+
+  it('Should cancel the response body stream when returning 304 Not Modified', async () => {
+    let cancelled = false
+    const app = new Hono()
+    app.use('/stream', etag())
+    app.get('/stream', (c) => {
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          controller.enqueue(new TextEncoder().encode('chunk'))
+        },
+        cancel() {
+          cancelled = true
+        },
+      })
+      return c.body(stream, 200, { ETag: '"stream-v1"' })
+    })
+
+    const res = await app.request('http://localhost/stream', {
+      headers: { 'If-None-Match': '"stream-v1"' },
+    })
+
+    expect(res.status).toBe(304)
+    expect(cancelled).toBe(true)
+  })
 })

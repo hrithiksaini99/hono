@@ -117,6 +117,7 @@ export const etag = (options?: ETagOptions): MiddlewareHandler => {
     const matched = ifNoneMatch === '*' || etagMatches(etag, ifNoneMatch)
 
     if (matched) {
+      await res.body?.cancel().catch(() => {})
       c.res = new Response(null, {
         status: 304,
         statusText: 'Not Modified',
