@@ -457,4 +457,52 @@ describe('Set cookie', () => {
     })
     expect(highSerialized).toBe('test_cookie=value; Priority=High')
   })
+
+  it('Should throw Error for __Secure- and __Host- cookies with invalid options (case-insensitive)', () => {
+    expect(() => {
+      serialize('__Secure-cookie', 'value')
+    }).toThrowError('__Secure- Cookie must have Secure attributes')
+    expect(() => {
+      serialize('__secure-cookie', 'value')
+    }).toThrowError('__Secure- Cookie must have Secure attributes')
+    expect(() => {
+      serialize('__SECURE-cookie', 'value')
+    }).toThrowError('__Secure- Cookie must have Secure attributes')
+
+    expect(() => {
+      serialize('__Host-cookie', 'value')
+    }).toThrowError('__Host- Cookie must have Secure attributes')
+    expect(() => {
+      serialize('__host-cookie', 'value')
+    }).toThrowError('__Host- Cookie must have Secure attributes')
+    expect(() => {
+      serialize('__HOST-cookie', 'value')
+    }).toThrowError('__Host- Cookie must have Secure attributes')
+
+    expect(() => {
+      // @ts-expect-error - testing invalid path at runtime
+      serialize('__Host-cookie', 'value', { secure: true, path: '/sub' })
+    }).toThrowError('__Host- Cookie must have Path attributes with "/"')
+    expect(() => {
+      // @ts-expect-error - testing invalid path at runtime
+      serialize('__host-cookie', 'value', { secure: true, path: '/sub' })
+    }).toThrowError('__Host- Cookie must have Path attributes with "/"')
+
+    expect(() => {
+      // @ts-expect-error - testing invalid domain at runtime
+      serialize('__Host-cookie', 'value', { secure: true, path: '/', domain: 'example.com' })
+    }).toThrowError('__Host- Cookie must not have Domain attributes')
+    expect(() => {
+      // @ts-expect-error - testing invalid domain at runtime
+      serialize('__host-cookie', 'value', { secure: true, path: '/', domain: 'example.com' })
+    }).toThrowError('__Host- Cookie must not have Domain attributes')
+  })
+
+  it('Should serialize __host- and __secure- cookies when valid options are supplied (case-insensitive)', () => {
+    const secureCookie = serialize('__secure-token', 'abc', { secure: true })
+    expect(secureCookie).toBe('__secure-token=abc; Secure')
+
+    const hostCookie = serialize('__host-token', 'xyz', { secure: true, path: '/' })
+    expect(hostCookie).toBe('__host-token=xyz; Path=/; Secure')
+  })
 })
